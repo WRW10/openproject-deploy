@@ -1,8 +1,10 @@
 version: "3.7"
 
 networks:
-  frontend:
-  backend:
+  proxy:
+    external:true
+  internal:
+    external:false
 
 volumes:
   pgdata:
@@ -37,13 +39,13 @@ services:
       POSTGRES_PASSWORD: p4ssw0rd
       POSTGRES_DB: openproject
     networks:
-      - backend
+      - internal
 
   cache:
     image: memcached
     <<: *restart_policy
     networks:
-      - backend
+      - internal
 
   proxy:
     <<: *image
@@ -57,14 +59,20 @@ services:
     depends_on:
       - web
     networks:
-      - frontend
+      - proxy
 
   web:
     <<: *app
     command: "./docker/prod/web"
+    labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=proxy"
+        - "traefik.http.routers.openproject.entrypoints=websecure"
+        - "traefik.http.routers.openproject.rule=Host(`openproject.westhafer.net`)"
+        - traefik.port=80
     networks:
-      - frontend
-      - backend
+      - proxy
+      - internal
     depends_on:
       - db
       - cache
@@ -74,7 +82,7 @@ services:
     <<: *app
     command: "./docker/prod/worker"
     networks:
-      - backend
+      - internal
     depends_on:
       - db
       - cache
@@ -84,7 +92,7 @@ services:
     <<: *app
     command: "./docker/prod/cron"
     networks:
-      - backend
+      - internal
     depends_on:
       - db
       - cache
@@ -95,4 +103,4 @@ services:
     command: "./docker/prod/seeder"
     restart: on-failure
     networks:
-      - backend
+      - internal
