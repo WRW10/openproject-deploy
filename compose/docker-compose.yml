@@ -2,9 +2,9 @@ version: "3.7"
 
 networks:
   proxy:
-    external:true
+    external: true
   internal:
-    external:false
+    external: false
 
 volumes:
   pgdata:
@@ -25,6 +25,12 @@ x-op-app: &app
     USE_PUMA: "true"
     # set to true to enable the email receiving feature. See ./docker/cron for more options
     IMAP_ENABLED: "${IMAP_ENABLED:-false}"
+  labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=proxy"
+        - "traefik.http.routers.openproject.entrypoints=websecure"
+        - "traefik.http.routers.openproject.rule=Host(`openproject.westhafer.net`)"
+        - traefik.port=80
   volumes:
     - "opdata:/var/openproject/assets"
 
@@ -64,12 +70,6 @@ services:
   web:
     <<: *app
     command: "./docker/prod/web"
-    labels:
-        - "traefik.enable=true"
-        - "traefik.docker.network=proxy"
-        - "traefik.http.routers.openproject.entrypoints=websecure"
-        - "traefik.http.routers.openproject.rule=Host(`openproject.westhafer.net`)"
-        - traefik.port=80
     networks:
       - proxy
       - internal
